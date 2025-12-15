@@ -22,4 +22,5 @@ class DBConfig:
             "user": config.get("db", {}).get("user", "root"),
             "password": config.get("db", {}).get("password", ""),
             "port": config.get("db", {}).get("port", 3306),
+            "pool_size": config.get("db", {}).get("pool_size", 10),
         }

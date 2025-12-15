@@ -9,14 +9,15 @@ from automation_lib.core.logger import Logger
 class BasePage:
     """Base class for all page objects with common functionality."""
 
-    def __init__(self, page: Page):
+    def __init__(self, page: Page, page_name: str = "BasePage") -> None:
         """Initialize the base page with a Playwright page object.
 
         Args:
             page: Playwright Page object
+            page_name: Name of the page for logging purposes
         """
         self.page = page
-        self.logger = Logger.get_logger("test_automation")
+        self.logger = Logger.get_logger(page_name)
 
     def navigate_to(self, url: str) -> None:
         """Navigate to a specific URL.
