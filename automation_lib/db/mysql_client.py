@@ -15,13 +15,14 @@ from tenacity import (
     wait_exponential,
 )
 
-from automation_lib.core import (
+from automation_lib.core import Logger
+from automation_lib.core.exceptions import (
     DatabaseConnectionError,
     DatabasePoolError,
     DatabaseQueryError,
 )
 
-logger = logging.getLogger(__name__)
+logger = Logger.get_logger("MySQLClient")
 
 
 class MySQLClient:
@@ -268,6 +269,44 @@ class MySQLClient:
                 with self.get_cursor() as cursor:
                     cursor.execute(query, params or ())
                     return cast(Optional[Dict[str, Any]], cursor.fetchone())
+            except Error as e:
+                raise DatabaseQueryError(
+                    query=query,
+                    message=str(e),
+                    details=f"Error code: {e.errno}" if hasattr(e, "errno") else None,
+                )
+
+        return _execute()
+
+    def fetch_all(
+        self, query: str, params: Optional[tuple] = None
+    ) -> List[Dict[str, Any]]:
+        """Fetch all rows as a list of dictionaries with retry mechanism using tenacity."""
+
+        @self._create_retry_decorator()
+        def _execute():
+            try:
+                with self.get_cursor() as cursor:
+                    cursor.execute(query, params or ())
+                    return cast(List[Dict[str, Any]], cursor.fetchall())
+            except Error as e:
+                raise DatabaseQueryError(
+                    query=query,
+                    message=str(e),
+                    details=f"Error code: {e.errno}" if hasattr(e, "errno") else None,
+                )
+
+        return _execute()
+
+    def bulk_insert(self, query: str, params_list: List[tuple]) -> int:
+        """Bulk insert using executemany. Returns number of inserted rows."""
+
+        @self._create_retry_decorator()
+        def _execute():
+            try:
+                with self.get_cursor() as cursor:
+                    cursor.executemany(query, params_list)
+                    return cursor.rowcount
             except Error as e:
                 raise DatabaseQueryError(
                     query=query,

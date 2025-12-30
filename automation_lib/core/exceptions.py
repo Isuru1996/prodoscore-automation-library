@@ -78,6 +78,12 @@ class NavigationError(PageError):
         return error_msg
 
 
+class PlaywrightCustomError(AutomationError):
+    """Placeholder for Playwright exceptions."""
+
+    pass
+
+
 class PageLoadError(PageError):
     """Exception raised when page fails to load properly."""
 

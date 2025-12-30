@@ -64,3 +64,8 @@ class Logger:
             Logger instance
         """
         return logging.getLogger(name)
+
+    @staticmethod
+    def get_logger_level(logger: logging.Logger) -> str:
+        """Get the effective logging level of the logger."""
+        return logging.getLevelName(logger.getEffectiveLevel())

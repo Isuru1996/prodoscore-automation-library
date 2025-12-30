@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from playwright.sync_api import Browser, Playwright, sync_playwright
 
-from automation_lib.core import BrowserError, BrowserLaunchError
+from automation_lib.core.exceptions import BrowserError, BrowserLaunchError
 
 BrowserType = Literal["chromium", "firefox", "webkit"]
 
