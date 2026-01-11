@@ -315,3 +315,21 @@ class MySQLClient:
                 )
 
         return _execute()
+
+    def bulk_update(self, query: str, params_list: List[tuple]) -> int:
+        """Bulk update using executemany. Returns number of affected rows."""
+
+        @self._create_retry_decorator()
+        def _execute():
+            try:
+                with self.get_cursor() as cursor:
+                    cursor.executemany(query, params_list)
+                    return cursor.rowcount
+            except Error as e:
+                raise DatabaseQueryError(
+                    query=query,
+                    message=str(e),
+                    details=f"Error code: {e.errno}" if hasattr(e, "errno") else None,
+                )
+
+        return _execute()

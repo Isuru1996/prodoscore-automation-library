@@ -484,7 +484,7 @@ class BasePage:
                 details=f"{getattr(e, 'name', '')}: {getattr(e, 'stack', '')}",
             )
 
-    def wait_for(self, locator, state="visible", timeout=5000, description=""):
+    def wait_for(self, locator, state="visible", timeout=20000, description=""):
         """Wait for a locator to reach a given state (default: visible)."""
         try:
             self.logger.info(
