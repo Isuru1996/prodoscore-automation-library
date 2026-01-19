@@ -54,7 +54,7 @@ class BasePage:
         self,
         wait_until: Literal[
             "commit", "domcontentloaded", "load", "networkidle"
-        ] = "load",
+        ] = "networkidle",
     ) -> None:
         """Refresh the page (soft refresh, like F5)."""
         try:
