@@ -330,6 +330,24 @@ class BasePage:
                 details=f"{getattr(e, 'name', '')}: {getattr(e, 'stack', '')}",
             )
 
+    def uncheck_locator(self, locator, description=""):
+        """Uncheck a checkbox locator.
+        Args:
+            locator: The Locator object to uncheck
+            description: Optional description for logging
+        """
+        try:
+            self.logger.info(f"Unchecking checkbox: {description or locator}")
+            locator.uncheck()
+        except PlaywrightError as e:
+            self.logger.error(
+                f"Playwright error during uncheck_locator :{e.message} | Name: {getattr(e, 'name', '')}"
+            )
+            raise PlaywrightCustomError(
+                message=e.message,
+                details=f"{getattr(e, 'name', '')}: {getattr(e, 'stack', '')}",
+            )
+
     def select_option_locator_by_value(self, locator, value, description=""):
         """Select an option in a dropdown locator.
         Args:

@@ -5,6 +5,8 @@ from pathlib import Path
 class TestDataLoader:
     """Loads test data from a JSON file."""
 
+    __test__ = False
+
     def __init__(self, data_file):
         """Initialize TestDataLoader."""
         data_path = Path(data_file)
