@@ -1,6 +1,6 @@
 """Base Page class for all page objects."""
 
-from typing import Literal
+from typing import Literal, Optional
 
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
@@ -20,13 +20,12 @@ class BasePage:
             page_name: Name of the page for logging purposes
         """
         self.page = page
-        # self.page.on(
-        #     "request", lambda request: print(">>", request.method, request.url)
-        # )
-        # self.page.on(
-        #     "response", lambda response: print("<<", response.status, response.url)
-        # )
         self.logger = Logger.get_logger(page_name)
+        self._captured_requests = []
+        self._captured_responses = []
+        self._request_listener_active = False
+        self._request_handler = None
+        self._response_handler = None
 
     def navigate_to(self, url: str) -> None:
         """Navigate to a specific URL.
@@ -532,3 +531,126 @@ class BasePage:
                 message=e.message,
                 details=f"{getattr(e, 'name', '')}: {getattr(e, 'stack', '')}",
             )
+
+    # ========== Network Request/Response Monitoring Methods ==========
+
+    def start_request_monitoring(self, url_pattern: Optional[str] = None) -> None:
+        """Start monitoring network requests. Optionally filter by URL pattern.
+
+        Args:
+            url_pattern: Optional URL pattern to filter requests (e.g., "**/api/**")
+        """
+        if self._request_listener_active:
+            self.logger.warning("Request monitoring is already active")
+            return
+
+        self._captured_requests.clear()
+        self._captured_responses.clear()
+
+        def request_handler(request):
+            if url_pattern is None or self._matches_pattern(request.url, url_pattern):
+                self._captured_requests.append(request)
+                self.logger.debug(f"Captured request: {request.method} {request.url}")
+
+        def response_handler(response):
+            if url_pattern is None or self._matches_pattern(response.url, url_pattern):
+                self._captured_responses.append(response)
+                self.logger.debug(
+                    f"Captured response: {response.status} {response.url}"
+                )
+
+        # Store references to the handlers
+        self._request_handler = request_handler
+        self._response_handler = response_handler
+
+        self.page.on("request", self._request_handler)
+        self.page.on("response", self._response_handler)
+        self._request_listener_active = True
+        self.logger.info(
+            f"Started request monitoring (pattern: {url_pattern or 'all'})"
+        )
+
+    def stop_request_monitoring(self) -> None:
+        """Stop monitoring network requests and clear captured data."""
+        if not self._request_listener_active:
+            return
+
+        # Remove using the stored handler references
+        if self._request_handler:
+            self.page.remove_listener("request", self._request_handler)
+        if self._response_handler:
+            self.page.remove_listener("response", self._response_handler)
+
+        self._request_handler = None
+        self._response_handler = None
+        self._request_listener_active = False
+        self.logger.info("Stopped request monitoring")
+
+    def clear_captured_requests(self) -> None:
+        """Clear all captured requests and responses."""
+        self._captured_requests.clear()
+        self._captured_responses.clear()
+        self.logger.info("Cleared captured requests and responses")
+
+    def get_captured_requests(self, url_pattern: Optional[str] = None) -> list:
+        """Get captured requests, optionally filtered by URL pattern.
+
+        Args:
+            url_pattern: Optional URL pattern to filter requests
+
+        Returns:
+            List of captured Request objects
+        """
+        if url_pattern is None:
+            return self._captured_requests.copy()
+        return [
+            req
+            for req in self._captured_requests
+            if self._matches_pattern(req.url, url_pattern)
+        ]
+
+    def get_captured_responses(self, url_pattern: Optional[str] = None) -> list:
+        """Get captured responses, optionally filtered by URL pattern.
+
+        Args:
+            url_pattern: Optional URL pattern to filter responses
+
+        Returns:
+            List of captured Response objects
+        """
+        if url_pattern is None:
+            return self._captured_responses.copy()
+        return [
+            res
+            for res in self._captured_responses
+            if self._matches_pattern(res.url, url_pattern)
+        ]
+
+    def get_request_count(self, url_pattern: Optional[str] = None) -> int:
+        """Get the count of captured requests.
+
+        Args:
+            url_pattern: Optional URL pattern to filter requests
+
+        Returns:
+            Number of captured requests
+        """
+        return len(self.get_captured_requests(url_pattern))
+
+    @staticmethod
+    def _matches_pattern(url: str, pattern: str) -> bool:
+        """Check if URL matches a glob-style pattern.
+
+        Args:
+            url: The URL to check
+            pattern: The pattern (supports * and **)
+
+        Returns:
+            True if URL matches pattern
+        """
+        import re
+
+        # Convert glob pattern to regex
+        pattern = pattern.replace("**", ".*").replace("*", "[^/]*")
+        pattern = f"^{pattern}$"
+        return bool(re.match(pattern, url))

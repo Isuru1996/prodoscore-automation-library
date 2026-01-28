@@ -1,6 +1,6 @@
 [project]
 name = "prodoscore-automation-library"
-version = "0.1.0"
+version = "0.0.1"
 description = "Prodoscore automation library with Playwright, Pytest and POM"
 readme = "README.md"
 requires-python = ">=3.12"
